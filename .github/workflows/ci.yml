@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  lint-and-breaking:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf lint
+      - if: github.event_name == 'pull_request'
+        run: buf breaking --against '.git#branch=main'
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: lint-and-breaking
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Python stubs (pinned grpcio-tools 1.62.x gencode)
+        run: |
+          python3 -m venv /tmp/genenv
+          /tmp/genenv/bin/pip install --quiet grpcio-tools==1.62.3
+          mkdir -p gen-python
+          /tmp/genenv/bin/python -m grpc_tools.protoc \
+            -I proto \
+            --python_out=gen-python \
+            --grpc_python_out=gen-python \
+            proto/auth/v1/auth.proto \
+            proto/chat/v1/chat.proto \
+            proto/directory/v1/directory.proto \
+            proto/embedding/v1/embedding.proto \
+            proto/search/v1/search.proto
+          find gen-python -type d -exec touch {}/__init__.py \;
+
+      - name: Commit generated stubs onto a release branch (tags stay immutable)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/${GITHUB_REF_NAME}"
+          git add -f gen-python
+          git commit -m "chore: generated Python stubs for ${GITHUB_REF_NAME}"
+          git push origin "release/${GITHUB_REF_NAME}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@iitd-tech-ambit'
+
+      - name: Publish raw proto tree to GitHub Packages npm registry
+        run: |
+          mkdir -p npm-pkg/proto
+          cp -r proto/* npm-pkg/proto/
+          cat > npm-pkg/package.json <<EOF
+          {
+            "name": "@iitd-tech-ambit/protos",
+            "version": "${GITHUB_REF_NAME#v}",
+            "description": "Raw .proto contracts for Research Ambit services",
+            "files": ["proto"],
+            "repository": "IITD-Tech-Ambit/proto-registry",
+            "publishConfig": { "registry": "https://npm.pkg.github.com" }
+          }
+          EOF
+          cd npm-pkg && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
