@@ -32,19 +32,13 @@ jobs:
         run: |
           python3 -m venv /tmp/genenv
           /tmp/genenv/bin/pip install --quiet grpcio-tools==1.62.3
-          # Nested under iitd_ambit_protos/ deliberately: consumer services are
-          # themselves named after their domain (an "embedding" service, a
-          # "search-api", etc.), which would collide with and silently shadow
-          # top-level packages named auth/chat/directory/embedding/search.
-          #
-          # protoc bakes each generated _pb2_grpc.py's cross-import of its own
-          # _pb2 module from the .proto's path *relative to -I*, not from
-          # --python_out. So the nesting has to happen by compiling against a
-          # synthetic -I root that already contains the iitd_ambit_protos/
-          # prefix, not just by nesting the output directory (verified: nesting
-          # only the output dir produces a working iitd_ambit_protos/... file
-          # layout whose _pb2_grpc.py files still `from embedding.v1 import
-          # embedding_pb2`, i.e. ModuleNotFoundError at import time).
+          # Nested under iitd_ambit_protos/ so it can't collide with a consumer
+          # service's own top-level package of the same name (e.g. an
+          # "embedding" service). protoc bakes each _pb2_grpc.py's import of
+          # its own _pb2 module from the .proto path *relative to -I*, not
+          # from --python_out, so the nesting must happen via a synthetic -I
+          # root — nesting only the output dir leaves the cross-import
+          # unqualified and breaks at import time.
           rm -rf /tmp/protoroot
           mkdir -p /tmp/protoroot/iitd_ambit_protos
           cp -r proto/* /tmp/protoroot/iitd_ambit_protos/
