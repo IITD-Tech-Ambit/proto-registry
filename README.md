@@ -40,7 +40,12 @@ repo's `protos/README.md` for migration status).
   codegen step, same model as before migration.
 - **Python** (embedding, chatbot-agent): pin
   `git+https://github.com/IITD-Tech-Ambit/proto-registry.git@release/vX.Y.Z#subdirectory=gen-python`
-  in `requirements.txt`/`pyproject.toml`. Tags themselves stay immutable
+  in `requirements.txt`/`pyproject.toml`, then import as
+  `from iitd_ambit_protos.embedding.v1 import embedding_pb2` (etc.) — stubs
+  are nested under the `iitd_ambit_protos` top-level package deliberately,
+  since a consumer service named after its own domain (an `embedding`
+  service, a `search-api`) would otherwise collide with and silently shadow
+  a top-level package of the same name. Tags themselves stay immutable
   (source only); each tag's generated stubs live on the matching
   `release/vX.Y.Z` branch, built with `grpcio-tools==1.62.3` deliberately, so
   output stays importable on both older (`protobuf>=4.25.0`) and newer

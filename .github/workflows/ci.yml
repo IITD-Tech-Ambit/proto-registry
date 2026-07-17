@@ -32,11 +32,15 @@ jobs:
         run: |
           python3 -m venv /tmp/genenv
           /tmp/genenv/bin/pip install --quiet grpcio-tools==1.62.3
-          mkdir -p gen-python
+          # Nested under iitd_ambit_protos/ deliberately: consumer services are
+          # themselves named after their domain (an "embedding" service, a
+          # "search-api", etc.), which would collide with and silently shadow
+          # top-level packages named auth/chat/directory/embedding/search.
+          mkdir -p gen-python/iitd_ambit_protos
           /tmp/genenv/bin/python -m grpc_tools.protoc \
             -I proto \
-            --python_out=gen-python \
-            --grpc_python_out=gen-python \
+            --python_out=gen-python/iitd_ambit_protos \
+            --grpc_python_out=gen-python/iitd_ambit_protos \
             proto/auth/v1/auth.proto \
             proto/chat/v1/chat.proto \
             proto/directory/v1/directory.proto \
@@ -60,7 +64,7 @@ jobs:
 
           [tool.setuptools.packages.find]
           where = ["."]
-          include = ["auth*", "chat*", "directory*", "embedding*", "search*"]
+          include = ["iitd_ambit_protos*"]
           EOF
 
       - name: Commit generated stubs onto a release branch (tags stay immutable)
