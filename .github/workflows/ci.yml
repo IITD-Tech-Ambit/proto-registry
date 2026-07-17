@@ -44,6 +44,25 @@ jobs:
             proto/search/v1/search.proto
           find gen-python -type d -exec touch {}/__init__.py \;
 
+      - name: Add packaging metadata so `pip install git+...#subdirectory=gen-python` works
+        run: |
+          cat > gen-python/pyproject.toml <<EOF
+          [build-system]
+          requires = ["setuptools>=68"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "iitd-tech-ambit-proto-stubs"
+          version = "${GITHUB_REF_NAME#v}"
+          description = "Generated Python gRPC stubs for Research Ambit proto contracts"
+          requires-python = ">=3.9"
+          dependencies = ["protobuf>=4.25.0", "grpcio>=1.62.0"]
+
+          [tool.setuptools.packages.find]
+          where = ["."]
+          include = ["auth*", "chat*", "directory*", "embedding*", "search*"]
+          EOF
+
       - name: Commit generated stubs onto a release branch (tags stay immutable)
         run: |
           git config user.name "github-actions[bot]"
