@@ -36,16 +36,28 @@ jobs:
           # themselves named after their domain (an "embedding" service, a
           # "search-api", etc.), which would collide with and silently shadow
           # top-level packages named auth/chat/directory/embedding/search.
-          mkdir -p gen-python/iitd_ambit_protos
+          #
+          # protoc bakes each generated _pb2_grpc.py's cross-import of its own
+          # _pb2 module from the .proto's path *relative to -I*, not from
+          # --python_out. So the nesting has to happen by compiling against a
+          # synthetic -I root that already contains the iitd_ambit_protos/
+          # prefix, not just by nesting the output directory (verified: nesting
+          # only the output dir produces a working iitd_ambit_protos/... file
+          # layout whose _pb2_grpc.py files still `from embedding.v1 import
+          # embedding_pb2`, i.e. ModuleNotFoundError at import time).
+          rm -rf /tmp/protoroot
+          mkdir -p /tmp/protoroot/iitd_ambit_protos
+          cp -r proto/* /tmp/protoroot/iitd_ambit_protos/
+          mkdir -p gen-python
           /tmp/genenv/bin/python -m grpc_tools.protoc \
-            -I proto \
-            --python_out=gen-python/iitd_ambit_protos \
-            --grpc_python_out=gen-python/iitd_ambit_protos \
-            proto/auth/v1/auth.proto \
-            proto/chat/v1/chat.proto \
-            proto/directory/v1/directory.proto \
-            proto/embedding/v1/embedding.proto \
-            proto/search/v1/search.proto
+            -I /tmp/protoroot \
+            --python_out=gen-python \
+            --grpc_python_out=gen-python \
+            /tmp/protoroot/iitd_ambit_protos/auth/v1/auth.proto \
+            /tmp/protoroot/iitd_ambit_protos/chat/v1/chat.proto \
+            /tmp/protoroot/iitd_ambit_protos/directory/v1/directory.proto \
+            /tmp/protoroot/iitd_ambit_protos/embedding/v1/embedding.proto \
+            /tmp/protoroot/iitd_ambit_protos/search/v1/search.proto
           find gen-python -type d -exec touch {}/__init__.py \;
 
       - name: Add packaging metadata so `pip install git+...#subdirectory=gen-python` works
