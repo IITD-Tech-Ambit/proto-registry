@@ -34,10 +34,17 @@ repo's `protos/README.md` for migration status).
 
 ## Consumption
 
+This repo is **public**. That makes plain `git+https` installs (Python)
+anonymous — no credentials needed. It does NOT make the npm side
+credential-free: GitHub Packages requires authentication for every install,
+public or private, so Node consumers still need a `GITHUB_TOKEN`/PAT with at
+least `read:packages` even though the source repo itself is open.
+
 - **Node** (api-gateway, auth-service, research-ambit-main, search-api):
   install the raw `.proto` tree as `@iitd-tech-ambit/protos` from GitHub
   Packages, load at runtime with `@grpc/proto-loader` + `@grpc/grpc-js` — no
-  codegen step, same model as before migration.
+  codegen step, same model as before migration. Still needs an auth token
+  for `npm install` (see above).
 - **Python** (embedding, chatbot-agent): pin
   `git+https://github.com/IITD-Tech-Ambit/proto-registry.git@release/vX.Y.Z#subdirectory=gen-python`
   in `requirements.txt`/`pyproject.toml`, then import as
