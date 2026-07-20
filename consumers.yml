@@ -1,0 +1,25 @@
+# Machine-readable version of the table in README.md. Owner workflows read
+# this after pushing a proto update to know which consumer repos to notify
+# (repository_dispatch, event type "proto-updated"). Verified against actual
+# loadPackage()/import call sites in each service, not assumed from docs —
+# see the audit that produced this file for what was previously wrong here.
+directory.v1:
+  owner: research-ambit-main
+  consumers:
+    - api-gateway
+auth.v1:
+  owner: auth-service
+  consumers:
+    - api-gateway
+search.v1:
+  owner: SEO-Backend-iitd
+  consumers:
+    - api-gateway
+    - chatbot-agent
+embedding.v1:
+  owner: SEO-Backend-iitd
+  consumers:
+    - chatbot-agent
+chat.v1:
+  owner: chatbot-agent
+  consumers: []
