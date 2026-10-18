@@ -25,11 +25,7 @@ message User {
   // IITD category (student / faculty / staff ...).
   string category = 6;
   string uniqueiitdid = 7;
-<<<<<<< HEAD
   // Computed by auth-service; never stored in the JWT.
-=======
-  // Set at verify time from SUPERADMIN_KERBEROS; never stored in the JWT.
->>>>>>> origin/main
   string role = 8;
 }
 
